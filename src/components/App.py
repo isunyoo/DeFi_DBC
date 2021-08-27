@@ -167,7 +167,7 @@ def index():
     # initial_result = getGreetingFromBlockchain()
     return render_template('index.html')
 
-@app.route('/Deposit', methods=['GET', 'POST'])
+@app.route('/Deposit', methods=['POST'])
 def Deposit():
     # global _global_principal_address    
     # _global_principal_address = request.form['principle']    
@@ -177,6 +177,8 @@ def Deposit():
     # listLength, From, To, EthValue, USDValue, Nonce, BlockNumber, Hash, BlockHash = txResultHistoryData(_global_principal_address, start_block, end_block, _global_principal_address)           
     # return render_template('query_display.html', value0=_global_principal_address, value1=start_block, value2=end_block, value3=listLength, value4=From, value5=To, value6=EthValue, value7=USDValue, value8=Nonce, value9=BlockNumber, value10=Hash, value11=BlockHash)
     # return redirect(url_for('AccountDashBoard'))
+    depositValue = request.form['depositAmount']     
+    print(depositValue)
     return render_template('deposit_process.html')
 
 @app.route('/Withdraw', methods=['GET', 'POST'])

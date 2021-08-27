@@ -2,7 +2,16 @@
 <html>
 
 <body>
-    <div>        
+    <script type="text/javascript">
+        function checkDepositAmount() {
+            var selectx = document.forms["importPKForm"]["inputPrivateKey"].value;
+            if (selectx == "") {
+                alert("Please Paste/Type Your Private Key");
+                return false;
+            }
+        }
+    </script>
+    <div>
         <br></br>
         How much do you want to deposit?
         <br></br>
@@ -10,13 +19,21 @@
         <br></br>
         (1 deposit is possible at the time)
         <br></br>
-        <form>
-            <div>                
+        <!-- <form name="depositForm" action="/Deposit" method="post" onsubmit="return checkPKImport()">
+            <div>
                 <input id='depositAmount' step='0.01' type='number' placeholder='amount...'/>
-            </div>            
+            </div>
             <button type='submit'>DEPOSIT</button>
+        </form> -->
+        <form name="depositForm" action="{{ url_for('Deposit') }}" method="post" onsubmit="return checkPKImport()">
+            <div>
+                <input type="text" name="depositAmount" step='0.01' type='number' placeholder='amount...'>{{ request.form['inputEtherValue'] }}</input>              
+            </div>
+            <input type="submit" value="DEPOSIT">
+            <!-- <button type='submit'>DEPOSIT</button> -->
         </form>
     </div>
 </body>
 
 </html>
+
