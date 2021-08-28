@@ -2,7 +2,7 @@ import json, struct
 from web3 import Web3
 from web3 import exceptions
 from eth_account import account
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, url_for
 
 # Load Blockchain Data
 def loadBlockchain():  
@@ -162,13 +162,19 @@ app = Flask(__name__)
 app.config['FLASK_ENV'] = 'development'
 # app.config['SECRET_KEY'] = '12345'
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    # initial_result = getGreetingFromBlockchain()
-    return render_template('index.html')
+  loadBlockchain()
+  loadTokenContract()
+  loadDbankContract()  
+  return render_template('index.html')
 
-@app.route('/Deposit', methods=['POST'])
-def Deposit():
+@app.route('/Deposit', methods=['GET'])
+def Deposit():    
+    return render_template('deposit_process.html')
+
+@app.route('/depositProcess', methods=['POST'])
+def depositProcess():
     # global _global_principal_address    
     # _global_principal_address = request.form['principle']    
     # accountImageCreation(_global_principal_address)    
@@ -176,10 +182,10 @@ def Deposit():
     # end_block = int(request.form['toBlk']) + 1
     # listLength, From, To, EthValue, USDValue, Nonce, BlockNumber, Hash, BlockHash = txResultHistoryData(_global_principal_address, start_block, end_block, _global_principal_address)           
     # return render_template('query_display.html', value0=_global_principal_address, value1=start_block, value2=end_block, value3=listLength, value4=From, value5=To, value6=EthValue, value7=USDValue, value8=Nonce, value9=BlockNumber, value10=Hash, value11=BlockHash)
-    # return redirect(url_for('AccountDashBoard'))
-    depositValue = request.form['depositAmount']     
-    print(depositValue)
-    return render_template('deposit_process.html')
+    # return redirect(url_for('AccountDashBoard'))    
+    depositValue = float(request.form['depositAmount'])
+    print(depositValue) 
+    return redirect(url_for('Deposit'))    
 
 @app.route('/Withdraw', methods=['GET', 'POST'])
 def Withdraw():    

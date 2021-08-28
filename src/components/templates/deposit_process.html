@@ -19,19 +19,12 @@
         <br></br>
         (1 deposit is possible at the time)
         <br></br>
-        <!-- <form name="depositForm" action="/Deposit" method="post" onsubmit="return checkPKImport()">
+        <form name="depositForm" action="/depositProcess" method="post" onsubmit="return checkPKImport()">
             <div>
-                <input id='depositAmount' step='0.01' type='number' placeholder='amount...'/>
+                <input name='depositAmount' step='0.01' type='number' placeholder='amount...'/>
             </div>
             <button type='submit'>DEPOSIT</button>
-        </form> -->
-        <form name="depositForm" action="{{ url_for('Deposit') }}" method="post" onsubmit="return checkPKImport()">
-            <div>
-                <input type="text" name="depositAmount" step='0.01' type='number' placeholder='amount...'>{{ request.form['inputEtherValue'] }}</input>              
-            </div>
-            <input type="submit" value="DEPOSIT">
-            <!-- <button type='submit'>DEPOSIT</button> -->
-        </form>
+        </form>        
     </div>
 </body>
 
