@@ -4,9 +4,9 @@
 <body>
     <script type="text/javascript">
         function checkDepositAmount() {
-            var selectx = document.forms["importPKForm"]["inputPrivateKey"].value;
-            if (selectx == "") {
-                alert("Please Paste/Type Your Private Key");
+            var selectx = document.forms["depositForm"]["depositAmount"].value;
+            if (selectx <= 0) {
+                alert("Deposit amount must be more than 0.01(ETH)");
                 return false;
             }
         }
@@ -19,12 +19,15 @@
         <br></br>
         (1 deposit is possible at the time)
         <br></br>
-        <form name="depositForm" action="/depositProcess" method="post" onsubmit="return checkPKImport()">
+        <form name='depositForm' action='/depositProcess' method='post' onsubmit='return checkDepositAmount()'>
             <div>
-                <input name='depositAmount' step='0.01' type='number' placeholder='amount...'/>
+                <input name='depositAmount' step='0.01' type='number' min='0' placeholder='amount...'/>
             </div>
             <button type='submit'>DEPOSIT</button>
         </form>        
+        {% for message in get_flashed_messages(category_filter=['exceptErrorMsg']) %}
+        <p>{{ message }}</p> {% endfor %}
+        <br>
     </div>
 </body>
 

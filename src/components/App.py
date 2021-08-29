@@ -2,7 +2,7 @@ import json, struct
 from web3 import Web3
 from web3 import exceptions
 from eth_account import account
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, flash, Markup
 
 # Load Blockchain Data
 def loadBlockchain():  
@@ -63,7 +63,7 @@ def toWei(balance):
 def deposit(amount):   
   print(f'Balance amount: {toEther(web3.eth.getBalance(account))}(ETH)')  
   print(f'Deposit amount: {amount}(ETH)')      
-  if(amount <= 0.01):     
+  if(amount < 0.01):     
     print('Deposit amount must be more than 0.01(ETH)\n')      
   else:        
     # Convert-to-wei    
@@ -77,7 +77,9 @@ def deposit(amount):
       print(f"Deposit Amount on Wei: {web3.eth.getTransaction(deposit_txHash)['value']} & Ether: {toEther(web3.eth.getTransaction(deposit_txHash)['value'])}")          
       print(f'Balance amount: {toEther(web3.eth.getBalance(account))}(ETH)\n')  
     except exceptions.SolidityError as error:
-      print(error)    
+      print(error) 
+      message = Markup(f'A private key has imported successfully.<br> {error}<br>') 
+      flash(message, 'exceptErrorMsg')   
       
 # Call a new withdrawAll funds
 def withdrawAll():     
@@ -97,7 +99,7 @@ def withdrawAll():
 # Call a new withdraw funds
 def withdraw(amount):     
   print(f'Withdraw amount: {amount}(ETH)')  
-  if(amount <= 0.01):     
+  if(amount < 0.01):     
     print('Deposit amount must be more than 0.01(ETH)')      
   else:
     # Convert-to-wei    
@@ -119,7 +121,7 @@ def withdraw(amount):
 def borrow(amount):
   print(f'Balance amount: {toEther(web3.eth.getBalance(account))}(ETH)')  
   print(f'Borrow amount: {amount}(ETH)')      
-  if(amount <= 0.01):    
+  if(amount < 0.01):    
     print('Borrow amount must be more than 0.01(ETH)\n')  
   else:  
     # Convert-to-wei    
@@ -160,7 +162,7 @@ def payOff():
 # Flask http web display
 app = Flask(__name__)
 app.config['FLASK_ENV'] = 'development'
-# app.config['SECRET_KEY'] = '12345'
+app.config['SECRET_KEY'] = '12345$'
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -181,15 +183,20 @@ def depositProcess():
     # start_block = int(request.form['fromBlk'])
     # end_block = int(request.form['toBlk']) + 1
     # listLength, From, To, EthValue, USDValue, Nonce, BlockNumber, Hash, BlockHash = txResultHistoryData(_global_principal_address, start_block, end_block, _global_principal_address)           
-    # return render_template('query_display.html', value0=_global_principal_address, value1=start_block, value2=end_block, value3=listLength, value4=From, value5=To, value6=EthValue, value7=USDValue, value8=Nonce, value9=BlockNumber, value10=Hash, value11=BlockHash)
-    # return redirect(url_for('AccountDashBoard'))    
+    # return render_template('query_display.html', value0=_global_principal_address, value1=start_block, value2=end_block, value3=listLength, value4=From, value5=To, value6=EthValue, value7=USDValue, value8=Nonce, value9=BlockNumber, value10=Hash, value11=BlockHash)    
     depositValue = float(request.form['depositAmount'])
-    print(depositValue) 
+    deposit(depositValue) 
     return redirect(url_for('Deposit'))    
+    # return render_template('index.html', value0=account_name, value1=dataLen, value2=current_block)  
 
-@app.route('/Withdraw', methods=['GET', 'POST'])
+@app.route('/Withdraw', methods=['GET'])
 def Withdraw():    
     return render_template('withdraw_process.html')
+
+@app.route('/withdrawProcess', methods=['POST'])
+def withdrawProcess():    
+    withdrawAll()
+    return redirect(url_for('Withdraw'))    
 
 @app.route('/Borrow', methods=['GET', 'POST'])
 def Borrow():    
