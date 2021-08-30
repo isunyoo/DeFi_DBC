@@ -5,9 +5,12 @@
         <br></br>
         (You'll receive your collateral - fee)
         <br></br>
-        <form>            
+        <form name='payOffForm' action='/payOffProcess' method='post'> 
             <button type='submit'>PAYOFF</button>
         </form>
+        {% for message in get_flashed_messages(category_filter=['exceptErrorMsg']) %}
+        <p>{{ message }}</p> {% endfor %}
+        <br>
     </div>    
 </body>
 

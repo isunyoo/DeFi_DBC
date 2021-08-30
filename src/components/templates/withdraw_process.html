@@ -5,11 +5,13 @@
     <div>        
         <br></br>
         Do you want to withdraw + take interest?
-        <br></br>
-        <form>    
+        <br></br>        
         <form name='withdrawForm' action='/withdrawProcess' method='post'>
             <button type='submit'>WITHDRAW</button>
         </form>
+        {% for message in get_flashed_messages(category_filter=['exceptErrorMsg']) %}
+        <p>{{ message }}</p> {% endfor %}
+        <br>
     </div>    
 </body>
 

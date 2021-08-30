@@ -1,23 +1,30 @@
-import json, struct
+import json, struct, requests
 from web3 import Web3
 from web3 import exceptions
 from eth_account import account
 from flask import Flask, render_template, request, redirect, url_for, flash, Markup
 
+# Global variables
+_global_principal_address = ''
+_global_principal_ether_balance = 0
+_global_principal_usd_balance = 0
+
 # Load Blockchain Data
 def loadBlockchain():  
-  ganache_url = 'http://127.0.0.1:8545'
-  global web3
+  global web3, account
+  ganache_url = 'http://127.0.0.1:8545'  
   web3 = Web3(Web3.HTTPProvider(ganache_url))
   # print("Web3 Connection: ", web3.isConnected())
   netId = web3.eth.chain_id
-  # print(netId)
-  global account
+  # print(netId)        
   web3.eth.defaultAccount = web3.eth.accounts[0]
   account = web3.eth.defaultAccount
-  # print(web3.eth.defaultAccount)
-  balance = web3.eth.get_balance(web3.eth.defaultAccount)
-  # print(balance)
+  # print(web3.eth.defaultAccount)  
+  _global_principal_address = account
+  _global_principal_ether_balance = toEther(web3.eth.get_balance(web3.eth.defaultAccount))
+  _global_principal_usd_balance = toUSD(web3.eth.get_balance(web3.eth.defaultAccount))
+  # print(_global_principal_ether_balance)
+  return _global_principal_address, _global_principal_ether_balance, _global_principal_usd_balance
 
 # Load Token Contract Data
 def loadTokenContract():
@@ -59,6 +66,16 @@ def toEther(balance):
 def toWei(balance):    
     return web3.toWei(balance, 'ether')
 
+# Get the current USD price of cryptocurrency conversion from API URL
+API_URL = 'https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=ETH,USD'
+apiReq = requests.get(API_URL)
+USD_CURRENT_PRICE=json.loads(apiReq.content)["USD"] 
+
+# Function to return USD conversion values
+def toUSD(balance):
+    usd_sum = round(USD_CURRENT_PRICE * float(toEther(balance)), 2)    
+    return usd_sum
+
 # Set a new deposit funds
 def deposit(amount):   
   print(f'Balance amount: {toEther(web3.eth.getBalance(account))}(ETH)')  
@@ -78,7 +95,7 @@ def deposit(amount):
       print(f'Balance amount: {toEther(web3.eth.getBalance(account))}(ETH)\n')  
     except exceptions.SolidityError as error:
       print(error) 
-      message = Markup(f'A private key has imported successfully.<br> {error}<br>') 
+      message = Markup(f'Error - Deposit has already taken previously.<br> {error}<br>') 
       flash(message, 'exceptErrorMsg')   
       
 # Call a new withdrawAll funds
@@ -94,7 +111,9 @@ def withdrawAll():
     print(withdraw_txReceipt)
     print(f"TransactionHash--> {web3.eth.getTransaction(withdraw_txHash)}\n")          
   except exceptions.SolidityError as error:
-      print(error)    
+      print(error)
+      message = Markup(f'Error - WithdrawAll has already taken previously.<br> {error}<br>') 
+      flash(message, 'exceptErrorMsg')
 
 # Call a new withdraw funds
 def withdraw(amount):     
@@ -116,6 +135,8 @@ def withdraw(amount):
       # print(f"Withdrawal Amount on Wei: {web3.eth.getTransaction(withdraw_txHash)['value']} on Ether: {toEther(web3.eth.getTransaction(withdraw_txHash)['value'])} \n")          
     except exceptions.SolidityError as error:
         print(error)
+        message = Markup(f'Error - There has no deposit previously.<br> {error}<br>') 
+        flash(message, 'exceptErrorMsg')
 
 # Set a new borrow funds
 def borrow(amount):
@@ -134,10 +155,12 @@ def borrow(amount):
       print(borrow_txReceipt)
       print(f'Balance amount: {toEther(web3.eth.getBalance(account))}(ETH)\n')  
     except exceptions.SolidityError as error:
-      print(error)    
+      print(error) 
+      message = Markup(f'Error - Borrow has already taken previously.<br> {error}<br>') 
+      flash(message, 'exceptErrorMsg')
 
 # Call a new payOff funds
-def payOff():  
+def payOffAll():  
   collateralEther = dbankContract.functions.collateralEther(web3.toChecksumAddress(account)).call({'from': web3.toChecksumAddress(account)})    
   tokenBorrowed = collateralEther/2    
   # Convert-to-wei    
@@ -158,6 +181,8 @@ def payOff():
     print(f'Balance amount: {toEther(web3.eth.getBalance(account))}(ETH)\n')  
   except exceptions.SolidityError as error:
       print(error)    
+      message = Markup(f'Error - There has no loans previously.<br> {error}<br>') 
+      flash(message, 'exceptErrorMsg')
                
 # Flask http web display
 app = Flask(__name__)
@@ -166,10 +191,10 @@ app.config['SECRET_KEY'] = '12345$'
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-  loadBlockchain()
+  account_details = loadBlockchain()  
   loadTokenContract()
-  loadDbankContract()  
-  return render_template('index.html')
+  loadDbankContract()    
+  return render_template('index.html', value0=account_details[0], value1=account_details[1], value2=account_details[2]) 
 
 @app.route('/Deposit', methods=['GET'])
 def Deposit():    
@@ -198,13 +223,19 @@ def withdrawProcess():
     withdrawAll()
     return redirect(url_for('Withdraw'))    
 
-@app.route('/Borrow', methods=['GET', 'POST'])
+@app.route('/Borrow', methods=['GET'])
 def Borrow():    
     return render_template('borrow_process.html')
 
-@app.route('/Payoff', methods=['GET', 'POST'])
+@app.route('/Payoff', methods=['GET'])
 def Payoff():    
     return render_template('payoff_process.html')
+
+@app.route('/payOffProcess', methods=['POST'])
+def payOffProcess():    
+    payOffAll()
+    return redirect(url_for('Payoff'))    
+
 
 # Development Debug Environment
 if __name__ == '__main__':
@@ -219,6 +250,6 @@ if __name__ == '__main__':
 #   withdrawAll()
 #   # withdraw(10.52)
 #   borrow(8.85)
-#   payOff()
+#   payOffAll()
 
 # https://web3py.readthedocs.io/en/stable/contracts.html#contract-deployment-example
