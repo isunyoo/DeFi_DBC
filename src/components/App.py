@@ -77,7 +77,8 @@ def toUSD(balance):
     return usd_sum
 
 # Set a new deposit funds
-def deposit(amount):   
+def deposit(amount):
+  deposit_txReceipt = ''
   print(f'Balance amount: {toEther(web3.eth.getBalance(account))}(ETH)')  
   print(f'Deposit amount: {amount}(ETH)')      
   if(amount < 0.01):     
@@ -97,7 +98,8 @@ def deposit(amount):
       print(error) 
       message = Markup(f'Error - Deposit has already taken previously.<br> {error}<br>') 
       flash(message, 'exceptErrorMsg')   
-      
+  return deposit_txReceipt
+
 # Call a new withdrawAll funds
 def withdrawAll():     
   print(f'Withdraw all deposit amount.')      
@@ -210,10 +212,16 @@ def depositProcess():
     # listLength, From, To, EthValue, USDValue, Nonce, BlockNumber, Hash, BlockHash = txResultHistoryData(_global_principal_address, start_block, end_block, _global_principal_address)           
     # return render_template('query_display.html', value0=_global_principal_address, value1=start_block, value2=end_block, value3=listLength, value4=From, value5=To, value6=EthValue, value7=USDValue, value8=Nonce, value9=BlockNumber, value10=Hash, value11=BlockHash)    
     depositValue = float(request.form['depositAmount'])
-    deposit(depositValue) 
-    return redirect(url_for('Deposit'))    
-    # return render_template('index.html', value0=account_name, value1=dataLen, value2=current_block)  
+    depositReceipt = 'Deposit Receipt: '.join(deposit(depositValue))       
+    return render_template('deposit_process.html', value0=depositReceipt)
 
+@app.route('/goto', methods=['POST'])
+def login_post():
+    username = request.form.get('username')
+    if username is None or username == '':
+        return redirect(url_for('user_page_central'))
+    return redirect(url_for('user_page', name = username))
+    
 @app.route('/Withdraw', methods=['GET'])
 def Withdraw():    
     return render_template('withdraw_process.html')
