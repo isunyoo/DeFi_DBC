@@ -78,7 +78,8 @@ def toUSD(balance):
 
 # Set a new deposit funds
 def deposit(amount):
-  deposit_txReceipt = ''
+  _deposit_txReceipt = ''
+  _deposit_ether_amount = 0
   print(f'Balance amount: {toEther(web3.eth.getBalance(account))}(ETH)')  
   print(f'Deposit amount: {amount}(ETH)')      
   if(amount < 0.01):     
@@ -90,15 +91,16 @@ def deposit(amount):
       # In try block call dBank deposit();            
       deposit_txHash = dbankContract.functions.deposit().transact({'from': web3.toChecksumAddress(account), 'value': amount_in_wei}) 
       # Wait for transaction to be mined
-      deposit_txReceipt = web3.eth.waitForTransactionReceipt(deposit_txHash)        
-      print(f"From: {deposit_txReceipt['from']} To: {deposit_txReceipt['to']}")
-      print(f"Deposit Amount on Wei: {web3.eth.getTransaction(deposit_txHash)['value']} & Ether: {toEther(web3.eth.getTransaction(deposit_txHash)['value'])}")          
+      _deposit_txReceipt = web3.eth.waitForTransactionReceipt(deposit_txHash)    
+      _deposit_ether_amount = toEther(web3.eth.getTransaction(deposit_txHash)['value'])
+      print(f"From: {_deposit_txReceipt['from']} To: {_deposit_txReceipt['to']}")
+      print(f"Deposit Amount on Wei: {web3.eth.getTransaction(deposit_txHash)['value']} & Ether: {toEther(web3.eth.getTransaction(deposit_txHash)['value'])}") 
       print(f'Balance amount: {toEther(web3.eth.getBalance(account))}(ETH)\n')  
     except exceptions.SolidityError as error:
       print(error) 
       message = Markup(f'Error - Deposit has already taken previously.<br> {error}<br>') 
       flash(message, 'exceptErrorMsg')   
-  return deposit_txReceipt
+  return _deposit_txReceipt, _deposit_ether_amount
 
 # Call a new withdrawAll funds
 def withdrawAll():     
@@ -212,8 +214,9 @@ def depositProcess():
     # listLength, From, To, EthValue, USDValue, Nonce, BlockNumber, Hash, BlockHash = txResultHistoryData(_global_principal_address, start_block, end_block, _global_principal_address)           
     # return render_template('query_display.html', value0=_global_principal_address, value1=start_block, value2=end_block, value3=listLength, value4=From, value5=To, value6=EthValue, value7=USDValue, value8=Nonce, value9=BlockNumber, value10=Hash, value11=BlockHash)    
     depositValue = float(request.form['depositAmount'])
-    depositReceipt = 'Deposit Receipt: '.join(deposit(depositValue))       
-    return render_template('deposit_process.html', value0=depositReceipt)
+    depositReceipt, depositEther = deposit(depositValue)
+    depositUSD = toUSD(depositEther)
+    return render_template('deposit_process.html', value0=depositReceipt['to'], value1=depositEther, value2=depositUSD)
 
 @app.route('/goto', methods=['POST'])
 def login_post():

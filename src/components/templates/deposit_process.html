@@ -24,11 +24,12 @@
                 <input name='depositAmount' step='0.01' type='number' min='0' placeholder='amount...'/>
             </div>
             <button type='submit'>DEPOSIT</button>
-        </form>        
+        </form>     
+        <br>
+        {{ value0 }} {{ value1 }} {{ value2 }}
         {% for message in get_flashed_messages(category_filter=['exceptErrorMsg']) %}
         <p>{{ message }}</p> {% endfor %}
-        <br>
-        {{ value0 }}
+        <br>        
     </div>
 </body>
 
