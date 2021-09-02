@@ -77,11 +77,12 @@ def toUSD(balance):
     return usd_sum
 
 # Set a new deposit funds
-def deposit(amount):
+def deposit(amount):  
   _deposit_txReceipt = ''
   _deposit_ether_amount = 0
-  print(f'Balance amount: {toEther(web3.eth.getBalance(account))}(ETH)')  
-  print(f'Deposit amount: {amount}(ETH)')      
+  _deposit_usd_amount = 0
+  # print(f'Balance amount: {toEther(web3.eth.getBalance(account))}(ETH)')  
+  # print(f'Deposit amount: {amount}(ETH)')      
   if(amount < 0.01):     
     print('Deposit amount must be more than 0.01(ETH)\n')      
   else:        
@@ -91,16 +92,17 @@ def deposit(amount):
       # In try block call dBank deposit();            
       deposit_txHash = dbankContract.functions.deposit().transact({'from': web3.toChecksumAddress(account), 'value': amount_in_wei}) 
       # Wait for transaction to be mined
-      _deposit_txReceipt = web3.eth.waitForTransactionReceipt(deposit_txHash)    
+      _deposit_txReceipt = web3.eth.waitForTransactionReceipt(deposit_txHash)        
       _deposit_ether_amount = toEther(web3.eth.getTransaction(deposit_txHash)['value'])
+      _deposit_usd_amount = toUSD(web3.eth.getTransaction(deposit_txHash)['value'])      
       print(f"From: {_deposit_txReceipt['from']} To: {_deposit_txReceipt['to']}")
       print(f"Deposit Amount on Wei: {web3.eth.getTransaction(deposit_txHash)['value']} & Ether: {toEther(web3.eth.getTransaction(deposit_txHash)['value'])}") 
       print(f'Balance amount: {toEther(web3.eth.getBalance(account))}(ETH)\n')  
     except exceptions.SolidityError as error:
-      print(error) 
+      # print(error)       
       message = Markup(f'Error - Deposit has already taken previously.<br> {error}<br>') 
       flash(message, 'exceptErrorMsg')   
-  return _deposit_txReceipt, _deposit_ether_amount
+  return _deposit_txReceipt, _deposit_ether_amount, _deposit_usd_amount
 
 # Call a new withdrawAll funds
 def withdrawAll():     
@@ -160,7 +162,7 @@ def borrow(amount):
       print(f'Balance amount: {toEther(web3.eth.getBalance(account))}(ETH)\n')  
     except exceptions.SolidityError as error:
       print(error) 
-      message = Markup(f'Error - Borrow has already taken previously.<br> {error}<br>') 
+      message = Markup(f'Error - Borrow has already taken previously.<br> {error}<br>')
       flash(message, 'exceptErrorMsg')
 
 # Call a new payOff funds
@@ -205,26 +207,14 @@ def Deposit():
     return render_template('deposit_process.html')
 
 @app.route('/depositProcess', methods=['POST'])
-def depositProcess():
-    # global _global_principal_address    
-    # _global_principal_address = request.form['principle']    
-    # accountImageCreation(_global_principal_address)    
-    # start_block = int(request.form['fromBlk'])
-    # end_block = int(request.form['toBlk']) + 1
-    # listLength, From, To, EthValue, USDValue, Nonce, BlockNumber, Hash, BlockHash = txResultHistoryData(_global_principal_address, start_block, end_block, _global_principal_address)           
-    # return render_template('query_display.html', value0=_global_principal_address, value1=start_block, value2=end_block, value3=listLength, value4=From, value5=To, value6=EthValue, value7=USDValue, value8=Nonce, value9=BlockNumber, value10=Hash, value11=BlockHash)    
+def depositProcess():    
     depositValue = float(request.form['depositAmount'])
-    depositReceipt, depositEther = deposit(depositValue)
-    depositUSD = toUSD(depositEther)
-    return render_template('deposit_process.html', value0=depositReceipt['to'], value1=depositEther, value2=depositUSD)
-
-@app.route('/goto', methods=['POST'])
-def login_post():
-    username = request.form.get('username')
-    if username is None or username == '':
-        return redirect(url_for('user_page_central'))
-    return redirect(url_for('user_page', name = username))
-    
+    depositReceipt = deposit(depositValue)    
+    if depositReceipt[0] is None or depositReceipt[0] == '':
+        return redirect(url_for('Deposit'))
+    depositReceiptMsg = Markup(f'Deposit to {depositReceipt[0]["to"]}<br>Ether Amount: {depositReceipt[1]} = USD Amount: {depositReceipt[2]} <br>')
+    return render_template('deposit_process.html', value0=depositReceiptMsg)    
+   
 @app.route('/Withdraw', methods=['GET'])
 def Withdraw():    
     return render_template('withdraw_process.html')
