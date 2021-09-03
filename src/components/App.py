@@ -106,20 +106,22 @@ def deposit(amount):
 
 # Call a new withdrawAll funds
 def withdrawAll():     
-  print(f'Withdraw all deposit amount.')      
+  _withdraw_txReceipt = ''
+  # print(f'Withdraw all deposit amount.')      
   try:
     # In try block call dBank withdraw(); 
     withdraw_txHash = dbankContract.functions.withdraw().transact({'from': web3.toChecksumAddress(account)})      
     # Wait for transaction to be mined
-    withdraw_txReceipt = web3.eth.waitForTransactionReceipt(withdraw_txHash)
+    _withdraw_txReceipt = web3.eth.waitForTransactionReceipt(withdraw_txHash)
     print(f'Withdrawal completed to account): {web3.toChecksumAddress(account)}')    
-    print(f"From: {withdraw_txReceipt['from']}, To: {withdraw_txReceipt['to']}")
-    print(withdraw_txReceipt)
-    print(f"TransactionHash--> {web3.eth.getTransaction(withdraw_txHash)}\n")          
+    print(f"From: {_withdraw_txReceipt['from']}, To: {_withdraw_txReceipt['to']}")
+    # print(_withdraw_txReceipt)
+    # print(f"TransactionHash--> {web3.eth.getTransaction(withdraw_txHash)}\n")          
   except exceptions.SolidityError as error:
-      print(error)
+      # print(error)
       message = Markup(f'Error - WithdrawAll has already taken previously.<br> {error}<br>') 
       flash(message, 'exceptErrorMsg')
+  return _withdraw_txReceipt
 
 # Call a new withdraw funds
 def withdraw(amount):     
@@ -213,7 +215,7 @@ def depositProcess():
     if depositReceipt[0] is None or depositReceipt[0] == '':
         return redirect(url_for('Deposit'))
     depositReceiptMsg = Markup(f'Deposit to {depositReceipt[0]["to"]}<br>Ether Amount: {depositReceipt[1]} = USD Amount: {depositReceipt[2]} <br>')
-    return render_template('deposit_process.html', value0=depositReceiptMsg)    
+    return render_template('deposit_process.html', value0=depositReceiptMsg)
    
 @app.route('/Withdraw', methods=['GET'])
 def Withdraw():    
@@ -221,8 +223,12 @@ def Withdraw():
 
 @app.route('/withdrawProcess', methods=['POST'])
 def withdrawProcess():    
-    withdrawAll()
-    return redirect(url_for('Withdraw'))    
+    withdrawReceipt = withdrawAll()
+    if withdrawReceipt is None or withdrawReceipt == '':
+        return redirect(url_for('Withdraw'))
+    # withdrawReceiptMsg = Markup(f'WithdrawAll to {withdrawReceipt[0]["to"]}<br>Ether Amount: {withdrawReceipt[1]} = USD Amount: {withdrawReceipt[2]} <br>')
+    withdrawReceiptMsg = Markup(f'{withdrawReceipt}<br>')
+    return render_template('withdraw_process.html', value0=withdrawReceiptMsg)         
 
 @app.route('/Borrow', methods=['GET'])
 def Borrow():    

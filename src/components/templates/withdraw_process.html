@@ -9,6 +9,8 @@
         <form name='withdrawForm' action='/withdrawProcess' method='post'>
             <button type='submit'>WITHDRAW</button>
         </form>
+        <br>        
+        {{ value0 }}
         {% for message in get_flashed_messages(category_filter=['exceptErrorMsg']) %}
         <p>{{ message }}</p> {% endfor %}
         <br>
