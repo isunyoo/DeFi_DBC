@@ -4,11 +4,6 @@ from web3 import exceptions
 from eth_account import account
 from flask import Flask, render_template, request, redirect, url_for, flash, Markup
 
-# Global variables
-_global_principal_address = ''
-_global_principal_ether_balance = 0
-_global_principal_usd_balance = 0
-
 # Load Blockchain Data
 def loadBlockchain():  
   global web3, account
@@ -81,6 +76,8 @@ def deposit(amount):
   _deposit_txReceipt = ''
   _deposit_ether_amount = 0
   _deposit_usd_amount = 0
+  _deposit_Transaction = ''
+  _deposit_BlockNum = 0
   # print(f'Balance amount: {toEther(web3.eth.getBalance(account))}(ETH)')  
   # print(f'Deposit amount: {amount}(ETH)')      
   if(amount < 0.01):     
@@ -95,14 +92,17 @@ def deposit(amount):
       _deposit_txReceipt = web3.eth.waitForTransactionReceipt(deposit_txHash)        
       _deposit_ether_amount = toEther(web3.eth.getTransaction(deposit_txHash)['value'])
       _deposit_usd_amount = toUSD(web3.eth.getTransaction(deposit_txHash)['value'])      
-      print(f"From: {_deposit_txReceipt['from']} To: {_deposit_txReceipt['to']}")
-      print(f"Deposit Amount on Wei: {web3.eth.getTransaction(deposit_txHash)['value']} & Ether: {toEther(web3.eth.getTransaction(deposit_txHash)['value'])}") 
-      print(f'Balance amount: {toEther(web3.eth.getBalance(account))}(ETH)\n')  
+      _deposit_Transaction = web3.toHex(_deposit_txReceipt['transactionHash'])
+      _deposit_BlockNum = _deposit_txReceipt['blockNumber']
+      # print(f"From: {_deposit_txReceipt['from']} To: {_deposit_txReceipt['to']}")
+      # print(f"Deposit Amount on Wei: {web3.eth.getTransaction(deposit_txHash)['value']} & Ether: {toEther(web3.eth.getTransaction(deposit_txHash)['value'])}") 
+      # print(f'Balance amount: {toEther(web3.eth.getBalance(account))}(ETH)\n')  
+      # print(f"Transaction: {web3.toHex(_deposit_txReceipt['transactionHash'])} Block Number: {_deposit_txReceipt['blockNumber']}\n")       
     except exceptions.SolidityError as error:
       # print(error)       
       message = Markup(f'Error - Deposit has already taken previously.<br> {error}<br>') 
       flash(message, 'exceptErrorMsg')   
-  return _deposit_txReceipt, _deposit_ether_amount, _deposit_usd_amount
+  return _deposit_txReceipt, _deposit_ether_amount, _deposit_usd_amount, _deposit_Transaction, _deposit_BlockNum
 
 # Call a new withdrawAll funds
 def withdrawAll():     
@@ -191,6 +191,13 @@ def payOffAll():
       print(error)    
       message = Markup(f'Error - There has no loans previously.<br> {error}<br>') 
       flash(message, 'exceptErrorMsg')
+
+# Init Function
+def __init__():
+  account_details = loadBlockchain()  
+  loadTokenContract()
+  loadDbankContract()
+  return account_details
                
 # Flask http web display
 app = Flask(__name__)
@@ -199,9 +206,10 @@ app.config['SECRET_KEY'] = '12345$'
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-  account_details = loadBlockchain()  
-  loadTokenContract()
-  loadDbankContract()    
+  # account_details = loadBlockchain()  
+  # loadTokenContract()
+  # loadDbankContract()   
+  account_details = __init__()
   return render_template('index.html', value0=account_details[0], value1=account_details[1], value2=account_details[2]) 
 
 @app.route('/Deposit', methods=['GET'])
@@ -214,11 +222,12 @@ def depositProcess():
     depositReceipt = deposit(depositValue)    
     if depositReceipt[0] is None or depositReceipt[0] == '':
         return redirect(url_for('Deposit'))
-    depositReceiptMsg = Markup(f'Deposit to {depositReceipt[0]["to"]}<br>Ether Amount: {depositReceipt[1]} = USD Amount: {depositReceipt[2]} <br>')
+    depositReceiptMsg = Markup(f'Deposit to Ethereum dBank {depositReceipt[0]["to"]}<br>Ether Amount: {depositReceipt[1]} = USD Amount: {depositReceipt[2]}<br>Transaction: {depositReceipt[3]} , Block Number: {depositReceipt[4]}')
     return render_template('deposit_process.html', value0=depositReceiptMsg)
    
 @app.route('/Withdraw', methods=['GET'])
 def Withdraw():    
+    __init__()
     return render_template('withdraw_process.html')
 
 @app.route('/withdrawProcess', methods=['POST'])
