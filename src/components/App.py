@@ -4,6 +4,10 @@ from web3 import exceptions
 from eth_account import account
 from flask import Flask, render_template, request, redirect, url_for, flash, Markup
 
+# Global variables
+_tokenContract = ''
+_dbankContract = ''
+
 # Load Blockchain Data
 def loadBlockchain():  
   global web3, account
@@ -32,8 +36,8 @@ def loadTokenContract():
   BYTECODE = info_json["bytecode"]
   CONTRACT_ADDRESS = info_json["networks"]["4447"]["address"]  
   # Initialize Token contract
-  global tokenContract
-  tokenContract = web3.eth.contract(address=CONTRACT_ADDRESS, abi=ABI, bytecode=BYTECODE)
+  global _tokenContract
+  _tokenContract = web3.eth.contract(address=CONTRACT_ADDRESS, abi=ABI, bytecode=BYTECODE)
   
 # Load dBank Contract Data
 def loadDbankContract():
@@ -46,8 +50,8 @@ def loadDbankContract():
   BYTECODE = info_json["bytecode"]
   CONTRACT_ADDRESS = info_json["networks"]["4447"]["address"]  
   # Initialize dBank contract
-  global dbankContract  
-  dbankContract = web3.eth.contract(address=CONTRACT_ADDRESS, abi=ABI, bytecode=BYTECODE)
+  global _dbankContract  
+  _dbankContract = web3.eth.contract(address=CONTRACT_ADDRESS, abi=ABI, bytecode=BYTECODE)
 
 # Function to convert a float into hex
 def float_to_hex(f):
@@ -73,6 +77,7 @@ def toUSD(balance):
 
 # Set a new deposit funds
 def deposit(amount):  
+  # Local variables
   _deposit_txReceipt = ''
   _deposit_ether_amount = 0
   _deposit_usd_amount = 0
@@ -87,7 +92,7 @@ def deposit(amount):
     amount_in_wei = toWei(amount)     
     try:
       # In try block call dBank deposit();            
-      deposit_txHash = dbankContract.functions.deposit().transact({'from': web3.toChecksumAddress(account), 'value': amount_in_wei}) 
+      deposit_txHash = _dbankContract.functions.deposit().transact({'from': web3.toChecksumAddress(account), 'value': amount_in_wei}) 
       # Wait for transaction to be mined
       _deposit_txReceipt = web3.eth.waitForTransactionReceipt(deposit_txHash)        
       _deposit_ether_amount = toEther(web3.eth.getTransaction(deposit_txHash)['value'])
@@ -105,23 +110,28 @@ def deposit(amount):
   return _deposit_txReceipt, _deposit_ether_amount, _deposit_usd_amount, _deposit_Transaction, _deposit_BlockNum
 
 # Call a new withdrawAll funds
-def withdrawAll():     
+def withdrawAll(): 
+  # Local variables
   _withdraw_txReceipt = ''
+  _withdraw_BlockNum = ''
+  _withdraw_Status = 0  
   # print(f'Withdraw all deposit amount.')      
   try:
     # In try block call dBank withdraw(); 
-    withdraw_txHash = dbankContract.functions.withdraw().transact({'from': web3.toChecksumAddress(account)})      
+    withdraw_txHash = _dbankContract.functions.withdraw().transact({'from': web3.toChecksumAddress(account)})      
     # Wait for transaction to be mined
     _withdraw_txReceipt = web3.eth.waitForTransactionReceipt(withdraw_txHash)
-    print(f'Withdrawal completed to account): {web3.toChecksumAddress(account)}')    
-    print(f"From: {_withdraw_txReceipt['from']}, To: {_withdraw_txReceipt['to']}")
-    # print(_withdraw_txReceipt)
-    # print(f"TransactionHash--> {web3.eth.getTransaction(withdraw_txHash)}\n")          
+    # print(f'Withdrawal completed to account: {web3.toChecksumAddress(account)}')    
+    # print(f"From: {_withdraw_txReceipt['from']}, To: {_withdraw_txReceipt['to']}")    
+    # print(f"TransactionHash--> {web3.eth.getTransaction(withdraw_txHash)}\n")    
+    _withdraw_Transaction = web3.toHex(_withdraw_txReceipt['transactionHash'])
+    _withdraw_BlockNum = _withdraw_txReceipt['blockNumber']    
+    _withdraw_Status = _withdraw_txReceipt['status']  
   except exceptions.SolidityError as error:
       # print(error)
       message = Markup(f'Error - WithdrawAll has already taken previously.<br> {error}<br>') 
       flash(message, 'exceptErrorMsg')
-  return _withdraw_txReceipt
+  return _withdraw_txReceipt, _withdraw_BlockNum, _withdraw_Status
 
 # Call a new withdraw funds
 def withdraw(amount):     
@@ -133,7 +143,7 @@ def withdraw(amount):
     amount_in_wei = toWei(amount)   
     try:
       # In try block call dBank withdraw(); 
-      withdraw_txHash = dbankContract.functions.withdraw().transact({'from': web3.toChecksumAddress(account)})      
+      withdraw_txHash = _dbankContract.functions.withdraw().transact({'from': web3.toChecksumAddress(account)})      
       # Wait for transaction to be mined
       withdraw_txReceipt = web3.eth.waitForTransactionReceipt(withdraw_txHash)
       print(f'Withdrawal completed to account): {web3.toChecksumAddress(account)}')    
@@ -157,7 +167,7 @@ def borrow(amount):
     amount_in_wei = toWei(amount)   
     try:
       # In try block call dBank borrow();      
-      borrow_txHash = dbankContract.functions.borrow().transact({'from': web3.toChecksumAddress(account), 'value': amount_in_wei})  
+      borrow_txHash = _dbankContract.functions.borrow().transact({'from': web3.toChecksumAddress(account), 'value': amount_in_wei})  
       # Wait for transaction to be mined
       borrow_txReceipt = web3.eth.waitForTransactionReceipt(borrow_txHash)
       print(borrow_txReceipt)
@@ -169,20 +179,20 @@ def borrow(amount):
 
 # Call a new payOff funds
 def payOffAll():  
-  collateralEther = dbankContract.functions.collateralEther(web3.toChecksumAddress(account)).call({'from': web3.toChecksumAddress(account)})    
+  collateralEther = _dbankContract.functions.collateralEther(web3.toChecksumAddress(account)).call({'from': web3.toChecksumAddress(account)})    
   tokenBorrowed = collateralEther/2    
   # Convert-to-wei    
   amount_in_wei = toWei(tokenBorrowed)
   # {IERC20-allowance} : allowance(address owner, address spender)
-  tokenContract.functions.allowance(web3.toChecksumAddress(dbankContract.address), web3.toChecksumAddress(account)).call({'from': web3.toChecksumAddress(account)})
+  _tokenContract.functions.allowance(web3.toChecksumAddress(_dbankContract.address), web3.toChecksumAddress(account)).call({'from': web3.toChecksumAddress(account)})
   try:
     # In try block call dBank approve(); address owner, address spender, uint256 amount
     # {IERC20-approve} : approve(address spender, uint256 amount)      
-    approve_txHash = tokenContract.functions.approve(web3.toChecksumAddress(dbankContract.address), amount_in_wei).transact({'from': web3.toChecksumAddress(account)}) 
+    approve_txHash = _tokenContract.functions.approve(web3.toChecksumAddress(_dbankContract.address), amount_in_wei).transact({'from': web3.toChecksumAddress(account)}) 
     # Wait for transaction to be mined  
     web3.eth.waitForTransactionReceipt(approve_txHash)  
     # In try block call dBank payOff();
-    payOff_txHash = dbankContract.functions.payOff().transact({'from': web3.toChecksumAddress(account)})  
+    payOff_txHash = _dbankContract.functions.payOff().transact({'from': web3.toChecksumAddress(account)})  
     # Wait for transaction to be mined    
     payOff_txReceipt = web3.eth.waitForTransactionReceipt(payOff_txHash)  
     print(payOff_txReceipt)    
@@ -192,7 +202,7 @@ def payOffAll():
       message = Markup(f'Error - There has no loans previously.<br> {error}<br>') 
       flash(message, 'exceptErrorMsg')
 
-# Init Function
+# Init function to load blockchains
 def __init__():
   account_details = loadBlockchain()  
   loadTokenContract()
@@ -205,53 +215,58 @@ app.config['FLASK_ENV'] = 'development'
 app.config['SECRET_KEY'] = '12345$'
 
 @app.route('/', methods=['GET', 'POST'])
-def index():
-  # account_details = loadBlockchain()  
-  # loadTokenContract()
-  # loadDbankContract()   
+def index():  
   account_details = __init__()
   return render_template('index.html', value0=account_details[0], value1=account_details[1], value2=account_details[2]) 
 
 @app.route('/Deposit', methods=['GET'])
-def Deposit():    
+def Deposit():        
     return render_template('deposit_process.html')
 
 @app.route('/depositProcess', methods=['POST'])
 def depositProcess():    
+    __init__()
     depositValue = float(request.form['depositAmount'])
     depositReceipt = deposit(depositValue)    
     if depositReceipt[0] is None or depositReceipt[0] == '':
         return redirect(url_for('Deposit'))
-    depositReceiptMsg = Markup(f'Deposit to Ethereum dBank {depositReceipt[0]["to"]}<br>Ether Amount: {depositReceipt[1]} = USD Amount: {depositReceipt[2]}<br>Transaction: {depositReceipt[3]} , Block Number: {depositReceipt[4]}')
+    depositReceiptMsg = Markup(f'Deposit to Ethereum dBank: {depositReceipt[0]["to"]}<br>Ethereum Amount: {depositReceipt[1]} = USD Amount: {depositReceipt[2]}<br>Transaction: {depositReceipt[3]} , Block Number: {depositReceipt[4]}')
     return render_template('deposit_process.html', value0=depositReceiptMsg)
    
 @app.route('/Withdraw', methods=['GET'])
-def Withdraw():    
-    __init__()
+def Withdraw():        
     return render_template('withdraw_process.html')
 
 @app.route('/withdrawProcess', methods=['POST'])
-def withdrawProcess():    
+def withdrawProcess(): 
+    __init__()
     withdrawReceipt = withdrawAll()
     if withdrawReceipt is None or withdrawReceipt == '':
         return redirect(url_for('Withdraw'))
-    # withdrawReceiptMsg = Markup(f'WithdrawAll to {withdrawReceipt[0]["to"]}<br>Ether Amount: {withdrawReceipt[1]} = USD Amount: {withdrawReceipt[2]} <br>')
+    # withdrawReceiptMsg = Markup(f'WithdrawAll to {withdrawReceipt[0]["to"]}<br>Ether: {withdrawReceipt[1]} = USD: {withdrawReceipt[2]} <br>')
     withdrawReceiptMsg = Markup(f'{withdrawReceipt}<br>')
     return render_template('withdraw_process.html', value0=withdrawReceiptMsg)         
 
 @app.route('/Borrow', methods=['GET'])
-def Borrow():    
+def Borrow():        
     return render_template('borrow_process.html')
 
+@app.route('/borrowProcess', methods=['POST'])
+def borrowProcess():    
+    __init__()
+    # borrowValue = float(request.form['borrowAmount'])
+    # borrowReceipt = borrow(borrowValue)        
+    return redirect(url_for('Borrow'))    
+
 @app.route('/Payoff', methods=['GET'])
-def Payoff():    
+def Payoff():        
     return render_template('payoff_process.html')
 
 @app.route('/payOffProcess', methods=['POST'])
 def payOffProcess():    
+    __init__()
     payOffAll()
     return redirect(url_for('Payoff'))    
-
 
 # Development Debug Environment
 if __name__ == '__main__':
@@ -268,4 +283,3 @@ if __name__ == '__main__':
 #   borrow(8.85)
 #   payOffAll()
 
-# https://web3py.readthedocs.io/en/stable/contracts.html#contract-deployment-example
