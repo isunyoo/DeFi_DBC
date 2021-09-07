@@ -131,7 +131,7 @@ def withdrawAll():
       # print(error)
       message = Markup(f'Error - WithdrawAll has already taken previously.<br> {error}<br>') 
       flash(message, 'exceptErrorMsg')
-  return _withdraw_txReceipt, _withdraw_BlockNum, _withdraw_Status
+  return _withdraw_Transaction, _withdraw_BlockNum, _withdraw_Status
 
 # Call a new withdraw funds
 def withdraw(amount):     
@@ -230,7 +230,7 @@ def depositProcess():
     depositReceipt = deposit(depositValue)    
     if depositReceipt[0] is None or depositReceipt[0] == '':
         return redirect(url_for('Deposit'))
-    depositReceiptMsg = Markup(f'Deposit to Ethereum dBank: {depositReceipt[0]["to"]}<br>Ethereum Amount: {depositReceipt[1]} = USD Amount: {depositReceipt[2]}<br>Transaction: {depositReceipt[3]} , Block Number: {depositReceipt[4]}')
+    depositReceiptMsg = Markup(f'Deposit to Ethereum dBank: {depositReceipt[0]["to"]}<br>Ethereum Amount: {depositReceipt[1]} = USD Amount: {depositReceipt[2]}<br>Transaction: {depositReceipt[3]}<br>Block Number: {depositReceipt[4]}')
     return render_template('deposit_process.html', value0=depositReceiptMsg)
    
 @app.route('/Withdraw', methods=['GET'])
@@ -242,9 +242,11 @@ def withdrawProcess():
     __init__()
     withdrawReceipt = withdrawAll()
     if withdrawReceipt is None or withdrawReceipt == '':
-        return redirect(url_for('Withdraw'))
-    # withdrawReceiptMsg = Markup(f'WithdrawAll to {withdrawReceipt[0]["to"]}<br>Ether: {withdrawReceipt[1]} = USD: {withdrawReceipt[2]} <br>')
-    withdrawReceiptMsg = Markup(f'{withdrawReceipt}<br>')
+        return redirect(url_for('Withdraw'))    
+    if(withdrawReceipt[2] == 1):
+      withdrawReceiptMsg = Markup(f'Withdrawal has completed successfully.<br>Transaction: {withdrawReceipt[0]}<br>Block Number: {withdrawReceipt[1]}')    
+    else:
+      withdrawReceiptMsg = Markup(f'Withdrawal has failed.')
     return render_template('withdraw_process.html', value0=withdrawReceiptMsg)         
 
 @app.route('/Borrow', methods=['GET'])
