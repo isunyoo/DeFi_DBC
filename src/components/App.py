@@ -113,6 +113,7 @@ def deposit(amount):
 def withdrawAll(): 
   # Local variables
   _withdraw_txReceipt = ''
+  _withdraw_Transaction = ''
   _withdraw_BlockNum = ''
   _withdraw_Status = 0  
   # print(f'Withdraw all deposit amount.')      
@@ -131,7 +132,7 @@ def withdrawAll():
       # print(error)
       message = Markup(f'Error - WithdrawAll has already taken previously.<br> {error}<br>') 
       flash(message, 'exceptErrorMsg')
-  return _withdraw_Transaction, _withdraw_BlockNum, _withdraw_Status
+  return _withdraw_txReceipt, _withdraw_Transaction, _withdraw_BlockNum, _withdraw_Status
 
 # Call a new withdraw funds
 def withdraw(amount):     
@@ -241,12 +242,12 @@ def Withdraw():
 def withdrawProcess(): 
     __init__()
     withdrawReceipt = withdrawAll()
-    if withdrawReceipt is None or withdrawReceipt == '':
+    if withdrawReceipt[0] is None or withdrawReceipt[0] == '':
         return redirect(url_for('Withdraw'))    
-    if(withdrawReceipt[2] == 1):
-      withdrawReceiptMsg = Markup(f'Withdrawal has completed successfully.<br>Transaction: {withdrawReceipt[0]}<br>Block Number: {withdrawReceipt[1]}')    
+    if(withdrawReceipt[3] == 1):
+      withdrawReceiptMsg = Markup(f'WithdrawalAll has completed successfully.<br>Transaction: {withdrawReceipt[1]}<br>Block Number: {withdrawReceipt[2]}')    
     else:
-      withdrawReceiptMsg = Markup(f'Withdrawal has failed.')
+      withdrawReceiptMsg = Markup(f'WithdrawalAll has failed.')
     return render_template('withdraw_process.html', value0=withdrawReceiptMsg)         
 
 @app.route('/Borrow', methods=['GET'])
