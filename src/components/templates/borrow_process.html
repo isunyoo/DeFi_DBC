@@ -2,6 +2,15 @@
 <html>
 
 <body>
+    <script type="text/javascript">
+        function checkBorrowAmount() {
+            var selectx = document.forms["borrowForm"]["borrowAmount"].value;
+            if (selectx <= 0) {
+                alert("Loan amount must be more than 0.01(ETH)");
+                return false;
+            }
+        }
+    </script>
     <div>        
         <br></br>
         Do you want to borrow tokens?
@@ -10,12 +19,17 @@
         <br></br>
         Type collateral amount (in ETH)
         <br></br>
-        <form>
+        <form name='borrowForm' action='/borrowProcess' method='post' onsubmit='return checkBorrowAmount()'>        
             <div>                
-                <input id='borrowAmount' step='0.01' type='number' placeholder='amount...'/>
+                <input name='borrowAmount' step='0.01' type='number' min='0' placeholder='amount...'/>                
             </div>            
             <button type='submit'>BORROW</button>
         </form>
+        <br>        
+        {{ value0 }}
+        {% for message in get_flashed_messages(category_filter=['exceptErrorMsg']) %}
+        <p>{{ message }}</p> {% endfor %}
+        <br>        
     </div>    
 </body>
 

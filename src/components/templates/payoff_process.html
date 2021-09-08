@@ -1,3 +1,6 @@
+<!DOCTYPE html>
+<html>
+
 <body>
     <div>        
         <br></br>        
@@ -8,6 +11,8 @@
         <form name='payOffForm' action='/payOffProcess' method='post'> 
             <button type='submit'>PAYOFF</button>
         </form>
+        <br>        
+        {{ value0 }}
         {% for message in get_flashed_messages(category_filter=['exceptErrorMsg']) %}
         <p>{{ message }}</p> {% endfor %}
         <br>

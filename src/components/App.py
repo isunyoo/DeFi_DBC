@@ -105,7 +105,7 @@ def deposit(amount):
       # print(f"Transaction: {web3.toHex(_deposit_txReceipt['transactionHash'])} Block Number: {_deposit_txReceipt['blockNumber']}\n")       
     except exceptions.SolidityError as error:
       # print(error)       
-      message = Markup(f'Error - Deposit has already taken previously.<br> {error}<br>') 
+      message = Markup(f'Error - Deposit has already taken previously.<br>{error}<br>') 
       flash(message, 'exceptErrorMsg')   
   return _deposit_txReceipt, _deposit_ether_amount, _deposit_usd_amount, _deposit_Transaction, _deposit_BlockNum
 
@@ -130,7 +130,7 @@ def withdrawAll():
     _withdraw_Status = _withdraw_txReceipt['status']  
   except exceptions.SolidityError as error:
       # print(error)
-      message = Markup(f'Error - WithdrawAll has already taken previously.<br> {error}<br>') 
+      message = Markup(f'Error - WithdrawAll has already taken previously.<br>{error}<br>') 
       flash(message, 'exceptErrorMsg')
   return _withdraw_txReceipt, _withdraw_Transaction, _withdraw_BlockNum, _withdraw_Status
 
@@ -154,13 +154,19 @@ def withdraw(amount):
       # print(f"Withdrawal Amount on Wei: {web3.eth.getTransaction(withdraw_txHash)['value']} on Ether: {toEther(web3.eth.getTransaction(withdraw_txHash)['value'])} \n")          
     except exceptions.SolidityError as error:
         print(error)
-        message = Markup(f'Error - There has no deposit previously.<br> {error}<br>') 
+        message = Markup(f'Error - There has no deposit previously.<br>{error}<br>') 
         flash(message, 'exceptErrorMsg')
 
 # Set a new borrow funds
 def borrow(amount):
-  print(f'Balance amount: {toEther(web3.eth.getBalance(account))}(ETH)')  
-  print(f'Borrow amount: {amount}(ETH)')      
+  # Local variables
+  _borrow_txReceipt = ''
+  _borrow_ether_amount = 0
+  _borrow_usd_amount = 0
+  _borrow_Transaction = ''
+  _borrow_BlockNum = 0
+  # print(f'Balance amount: {toEther(web3.eth.getBalance(account))}(ETH)')  
+  # print(f'Borrow amount: {amount}(ETH)')      
   if(amount < 0.01):    
     print('Borrow amount must be more than 0.01(ETH)\n')  
   else:  
@@ -170,13 +176,18 @@ def borrow(amount):
       # In try block call dBank borrow();      
       borrow_txHash = _dbankContract.functions.borrow().transact({'from': web3.toChecksumAddress(account), 'value': amount_in_wei})  
       # Wait for transaction to be mined
-      borrow_txReceipt = web3.eth.waitForTransactionReceipt(borrow_txHash)
-      print(borrow_txReceipt)
-      print(f'Balance amount: {toEther(web3.eth.getBalance(account))}(ETH)\n')  
+      _borrow_txReceipt = web3.eth.waitForTransactionReceipt(borrow_txHash)
+      _borrow_ether_amount = toEther(web3.eth.getTransaction(borrow_txHash)['value'])
+      _borrow_usd_amount = toUSD(web3.eth.getTransaction(borrow_txHash)['value'])      
+      _borrow_Transaction = web3.toHex(_borrow_txReceipt['transactionHash'])
+      _borrow_BlockNum = _borrow_txReceipt['blockNumber']
+      # print(_borrow_txReceipt)
+      # print(f'Balance amount: {toEther(web3.eth.getBalance(account))}(ETH)\n')  
     except exceptions.SolidityError as error:
-      print(error) 
-      message = Markup(f'Error - Borrow has already taken previously.<br> {error}<br>')
+      # print(error) 
+      message = Markup(f'Error - Loan has already taken previously.<br>{error}<br>')
       flash(message, 'exceptErrorMsg')
+  return _borrow_txReceipt, _borrow_ether_amount, _borrow_usd_amount, _borrow_Transaction, _borrow_BlockNum
 
 # Call a new payOff funds
 def payOffAll():  
@@ -200,7 +211,7 @@ def payOffAll():
     print(f'Balance amount: {toEther(web3.eth.getBalance(account))}(ETH)\n')  
   except exceptions.SolidityError as error:
       print(error)    
-      message = Markup(f'Error - There has no loans previously.<br> {error}<br>') 
+      message = Markup(f'Error - There has no loans previously.<br>{error}<br>') 
       flash(message, 'exceptErrorMsg')
 
 # Init function to load blockchains
@@ -251,15 +262,18 @@ def withdrawProcess():
     return render_template('withdraw_process.html', value0=withdrawReceiptMsg)         
 
 @app.route('/Borrow', methods=['GET'])
-def Borrow():        
+def Borrow():    
     return render_template('borrow_process.html')
 
 @app.route('/borrowProcess', methods=['POST'])
 def borrowProcess():    
     __init__()
-    # borrowValue = float(request.form['borrowAmount'])
-    # borrowReceipt = borrow(borrowValue)        
-    return redirect(url_for('Borrow'))    
+    borrowValue = float(request.form['borrowAmount'])
+    borrowReceipt = borrow(borrowValue)   
+    if borrowReceipt[0] is None or borrowReceipt[0] == '':
+        return redirect(url_for('Borrow'))
+    borrowReceipttMsg = Markup(f'Loans from Ethereum dBank: {borrowReceipt[0]["to"]}<br>Ethereum Amount: {borrowReceipt[1]} = USD Amount: {borrowReceipt[2]}<br>Transaction: {borrowReceipt[3]}<br>Block Number: {borrowReceipt[4]}')
+    return render_template('borrow_process.html', value0=borrowReceipttMsg)         
 
 @app.route('/Payoff', methods=['GET'])
 def Payoff():        
@@ -268,8 +282,14 @@ def Payoff():
 @app.route('/payOffProcess', methods=['POST'])
 def payOffProcess():    
     __init__()
-    payOffAll()
-    return redirect(url_for('Payoff'))    
+    payOffReceipt = payOffAll()
+    if payOffReceipt[0] is None or payOffReceipt[0] == '':
+        return redirect(url_for('Payoff'))    
+    if(payOffReceipt[3] == 1):
+      payOffReceiptMsg = Markup(f'PayOffAll has completed successfully.<br>Transaction: {payOffReceipt[1]}<br>Block Number: {payOffReceipt[2]}')    
+    else:
+      payOffReceiptMsg = Markup(f'PayOffAll has failed.')
+    return render_template('payoff_process.html', value0=payOffReceiptMsg)         
 
 # Development Debug Environment
 if __name__ == '__main__':
