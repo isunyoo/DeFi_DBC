@@ -190,7 +190,12 @@ def borrow(amount):
   return _borrow_txReceipt, _borrow_ether_amount, _borrow_usd_amount, _borrow_Transaction, _borrow_BlockNum
 
 # Call a new payOff funds
-def payOffAll():  
+def payOffAll(): 
+    # Local variables
+  _payOff_txReceipt = ''
+  _payOff_Transaction = ''
+  _payOff_BlockNum = ''
+  _payOff_Status = 0  
   collateralEther = _dbankContract.functions.collateralEther(web3.toChecksumAddress(account)).call({'from': web3.toChecksumAddress(account)})    
   tokenBorrowed = collateralEther/2    
   # Convert-to-wei    
@@ -206,13 +211,17 @@ def payOffAll():
     # In try block call dBank payOff();
     payOff_txHash = _dbankContract.functions.payOff().transact({'from': web3.toChecksumAddress(account)})  
     # Wait for transaction to be mined    
-    payOff_txReceipt = web3.eth.waitForTransactionReceipt(payOff_txHash)  
-    print(payOff_txReceipt)    
-    print(f'Balance amount: {toEther(web3.eth.getBalance(account))}(ETH)\n')  
+    _payOff_txReceipt = web3.eth.waitForTransactionReceipt(payOff_txHash)  
+    # print(_payOff_txReceipt)    
+    # print(f'Balance amount: {toEther(web3.eth.getBalance(account))}(ETH)\n')  
+    _payOff_Transaction = web3.toHex(_payOff_txReceipt['transactionHash'])
+    _payOff_BlockNum = _payOff_txReceipt['blockNumber']    
+    _payOff_Status = _payOff_txReceipt['status'] 
   except exceptions.SolidityError as error:
-      print(error)    
+      # print(error)    
       message = Markup(f'Error - There has no loans previously.<br>{error}<br>') 
       flash(message, 'exceptErrorMsg')
+  return _payOff_txReceipt, _payOff_Transaction, _payOff_BlockNum, _payOff_Status
 
 # Init function to load blockchains
 def __init__():
